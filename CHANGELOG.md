@@ -1,3 +1,7 @@
+## 0.0.3
+
+* fix: Change getUpdateInfo return type to non-null
+
 ## 0.0.2
 
 * feat: Cache UpdateInfo

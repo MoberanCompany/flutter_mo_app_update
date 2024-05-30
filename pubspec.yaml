@@ -1,6 +1,6 @@
 name: mo_app_update
 description: Easy App Update Checker by Moberan
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/MoberanCompany/flutter_mo_app_update.git
 
 environment:
