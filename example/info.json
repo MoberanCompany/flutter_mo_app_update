@@ -1,0 +1,22 @@
+{
+    "android": {
+      "2": {
+        "downloadUrl": "https://github.com/moberancompany/mo_app_update/releases/download/0.0.2/app-release.apk",
+        "versionString": "0.0.2",
+        "priority": "2",
+        "changelog": {
+          "ko-kr": "테스트",
+          "en-us": "Test"
+        }
+      },
+      "1": {
+        "downloadUrl": "...",
+        "versionString": "0.0.1",
+        "priority": "0",
+        "changelog": {
+          "ko-kr": "최초 버전",
+          "en-us": "Init version"
+        }
+      }
+    }
+  }
