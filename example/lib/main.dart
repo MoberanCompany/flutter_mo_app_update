@@ -85,7 +85,7 @@ class _HomeState extends State<Home> {
     }
 
     var res = await showSimpleDialog(
-      message: 'Has Update',
+      message: 'Has Update to ${info.newVersionString}',
       buttons: [
         'Ignore',
         'Update',
@@ -130,6 +130,7 @@ class _HomeState extends State<Home> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('CurrentVersion: ${updateInfo?.currentVersionString}'),
+            Text('NewVersion: ${updateInfo?.newVersionString}'),
             Text('Update ${hasUpdate ? 'Exist' : 'Not Exist'}'),
             ElevatedButton(
               child: const Text('Check Update'),
