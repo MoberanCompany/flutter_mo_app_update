@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mo_app_update/mo_app_update.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,10 +32,9 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  late MoAppUpdate _moAppUpdatePlugin;
-  String appVersion = '';
-  MoAppSelfUpdateInfoModel? updateInfoModel;
-  bool get hasUpdate => updateInfoModel != null;
+  MoAppUpdate? _moAppUpdatePlugin;
+  MoAppUpdateInfo? get updateInfo => _moAppUpdatePlugin?.updateInfo;
+  bool get hasUpdate => updateInfo != null;
 
   Future<void> init() async {
     _moAppUpdatePlugin = await MoAppUpdate.initialize(
@@ -45,11 +43,6 @@ class _HomeState extends State<Home> {
         infoUrl: 'https://minio.moberan.com/moappupdate/android/info.json',
       ),
     );
-
-    updateInfoModel = await _moAppUpdatePlugin.getUpdateInfo();
-
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    appVersion = '${packageInfo.version}(${packageInfo.buildNumber})';
 
     setState(() {});
   }
@@ -78,6 +71,54 @@ class _HomeState extends State<Home> {
     );
   }
 
+  Future onCheckUpdate() async {
+    var info = await _moAppUpdatePlugin?.getUpdateInfo();
+    setState(() {});
+    if(info == null) {
+      await showSimpleDialog(
+        message: 'No Update',
+        buttons: [
+          'OK',
+        ],
+      );
+      return;
+    }
+
+    var res = await showSimpleDialog(
+      message: 'Has Update',
+      buttons: [
+        'Ignore',
+        'Update',
+      ],
+    );
+
+    if(res != 'Update') {
+      return;
+    }
+
+    try{
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Dialog(
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+      var res = await _moAppUpdatePlugin?.procedureUpdate(info);
+      Navigator.pop(context);
+    }
+    catch(e) {
+      showSimpleDialog(
+        message: e.toString(),
+        buttons: [
+          'OK',
+        ],
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,55 +129,17 @@ class _HomeState extends State<Home> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('CurrentVersion: $appVersion'),
+            Text('CurrentVersion: ${updateInfo?.currentVersionString}'),
             Text('Update ${hasUpdate ? 'Exist' : 'Not Exist'}'),
             ElevatedButton(
               child: const Text('Check Update'),
-              onPressed: () async {
-                var info = await _moAppUpdatePlugin.getUpdateInfo();
-                if(info == null) {
-                  await showSimpleDialog(
-                    message: 'No Update',
-                    buttons: [
-                      'OK',
-                    ],
-                  );
-                  return;
-                }
-
-                var res = await showSimpleDialog(
-                  message: 'Has Update',
-                  buttons: [
-                    'Ignore',
-                    'Update',
-                  ],
-                );
-
-                if(res != 'Update') {
-                  return;
-                }
-
-                try{
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Dialog(
-                      child: Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
-                  );
-                  var res = await _moAppUpdatePlugin.procedureSelfUpdate(info);
-                  Navigator.pop(context);
-                }
-                catch(e) {
-                  showSimpleDialog(
-                    message: e.toString(),
-                    buttons: [
-                      'OK',
-                    ],
-                  );
-                }
+              onPressed: onCheckUpdate,
+            ),
+            ElevatedButton(
+              child: const Text('Clear Update Info'),
+              onPressed: () {
+                _moAppUpdatePlugin?.clearUpdateInfo();
+                setState(() {});
               },
             ),
           ],
