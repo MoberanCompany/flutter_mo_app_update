@@ -149,7 +149,7 @@ class MoAppUpdate {
     if(_selfOption == null) {
       throw Exception("selfOption must not null");
     }
-    var selfOption = _selfOption!;
+    var selfOption = _selfOption;
     if(selfOption.currentBuildNumber == null) {
       throw Exception("selfOption.currentBuildNumber must not null");
     }
