@@ -40,16 +40,18 @@ class MoAppSelfUpdateInfoResponse {
 /// priority 0~3. 3: force update, 2: major/feature update, 3: minor/UI update
 class MoAppSelfUpdateInfoModel {
   final String downloadUrl;
+  final int? buildNumber;
   final String? versionString;
   final int? priority;
   final Map<String, String>? changelog;
 
-  MoAppSelfUpdateInfoModel({required this.downloadUrl, this.versionString, this.priority, this.changelog});
+  MoAppSelfUpdateInfoModel({required this.downloadUrl, this.versionString, this.priority, this.changelog, this.buildNumber});
 
   static MoAppSelfUpdateInfoModel fromJson(json) {
     var parsed = JsonUtil.tryParse(json);
     return MoAppSelfUpdateInfoModel(
       downloadUrl: parsed['downloadUrl'],
+      buildNumber: parsed['buildNumber'],
       versionString: parsed['versionString'],
       priority: int.tryParse(parsed['priority'] ?? ''),
       changelog: parsed['changelog']?.cast<String, String>(),
@@ -59,6 +61,7 @@ class MoAppSelfUpdateInfoModel {
   toJson() {
     return {
       'downloadUrl': downloadUrl,
+      'buildNumber': buildNumber,
       'versionString': versionString,
       'priority': priority,
       'changelog': changelog,

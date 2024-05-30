@@ -56,7 +56,7 @@ Easy App Update Checker by Moberan
 
     var info = await moAppUpdatePlugin.getUpdateInfo();
     if(info != null) {
-        var res = await moAppUpdatePlugin.procedureSelfUpdate(info);
+        var res = await moAppUpdatePlugin.procedureUpdate(info);
     }
     ```
 

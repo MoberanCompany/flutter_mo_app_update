@@ -5,25 +5,29 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:http/http.dart' as http;
-import 'package:mo_app_update/util/json_util.dart';
-import 'package:mo_app_update/model/mo_app_self_update_info_model.dart';
-import 'package:mo_app_update/model/mo_app_update_mode.dart';
-import 'package:mo_app_update/model/mo_app_update_self_option.dart';
+import 'package:mo_app_update/mo_app_update.dart';
 import 'package:mo_app_update/util/android_util.dart';
+import 'package:mo_app_update/util/json_util.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import 'exception/not_supported_platform_exception.dart';
-import 'mo_app_update_platform_interface.dart';
 
 class MoAppUpdate {
 
-  MoAppUpdate._({required MoAppUpdateMode mode, MoAppUpdateSelfOption? selfOption}) : _selfOption = selfOption, _mode = mode, platform = _getPlatform();
+  MoAppUpdate._({required MoAppUpdateMode mode, MoAppUpdateSelfOption? selfOption, required PackageInfo packageInfo}) : _selfOption = selfOption, _mode = mode, platform = _getPlatform(), _packageInfo = packageInfo;
 
   final String platform;
   final MoAppUpdateMode _mode;
   final MoAppUpdateSelfOption? _selfOption;
+  final PackageInfo _packageInfo;
+
+  MoAppUpdateInfo? _updateInfo;
+  MoAppUpdateInfo? get updateInfo => _updateInfo;
+
+  DateTime? _lastCheckedTime;
+  DateTime? get lastCheckedTime => _lastCheckedTime;
 
   static Future<MoAppUpdate> initialize({required MoAppUpdateMode mode, MoAppUpdateSelfOption? selfOption}) async {
+    var packageInfo = await PackageInfo.fromPlatform();
     if(mode == MoAppUpdateMode.self) {
       if(selfOption == null){
         throw Exception("selfOption must not null");
@@ -33,18 +37,20 @@ class MoAppUpdate {
           throw Exception('infoUrl or infoStr must not null');
         }
         else {
-          int? buildNumber = selfOption.currentBuildNumber;
-          if(buildNumber == null) {
-            PackageInfo packageInfo = await PackageInfo.fromPlatform();
-            buildNumber = int.parse(packageInfo.buildNumber);
-          }
+          int buildNumber = selfOption.currentBuildNumber ?? int.parse(packageInfo.buildNumber);
 
-          return MoAppUpdate._(
+          var instance = MoAppUpdate._(
             mode: mode,
             selfOption: selfOption.copyOf(
               currentBuildNumber: buildNumber,
             ),
+            packageInfo: packageInfo,
           );
+
+          var updateInfo = await instance.fetchUpdateInfo();
+          instance._updateInfo = updateInfo;
+          instance._lastCheckedTime = DateTime.now();
+          return instance;
         }
       }
     }
@@ -56,11 +62,41 @@ class MoAppUpdate {
     }
   }
 
-  Future<MoAppSelfUpdateInfoModel?> getUpdateInfo() async {
+  String getBuildNumber() {
+    return _selfOption?.currentBuildNumber?.toString() ?? _packageInfo.buildNumber;
+  }
+
+  String getVersionCode() {
+    return _packageInfo.version;
+  }
+
+  bool hasUpdate() {
+    return updateInfo != null;
+  }
+
+  Future<MoAppUpdateInfo?> fetchUpdateInfo() async {
     if(_mode == MoAppUpdateMode.self) {
       var selfUpdateInfo = await _getSelfUpdateInfo();
 
-      return _extractLatestUpdate(selfUpdateInfo);
+      var selfInfo = _extractLatestUpdate(selfUpdateInfo);
+      var info = MoAppUpdateInfo(
+        currentVersion: _packageInfo.version,
+        currentBuildNumber: _packageInfo.buildNumber,
+        currentVersionString: '${_packageInfo.version}(${_packageInfo.buildNumber})',
+        newVersion: selfInfo?.versionString,
+        newBuildNumber: selfInfo?.buildNumber?.toString(),
+        newVersionString: selfInfo == null ? null : '${selfInfo.versionString}(${selfInfo.buildNumber})',
+        mode: MoAppUpdateMode.self,
+        url: selfInfo?.downloadUrl,
+        updatePriority: selfInfo?.priority,
+        changelog: selfInfo?.changelog,
+        hasUpdate: selfInfo != null,
+      );
+
+      _updateInfo = info;
+      _lastCheckedTime = DateTime.now();
+
+      return info;
     }
     else if(_mode == MoAppUpdateMode.store) {
       throw UnimplementedError("getUpdateInfo store not implemented");
@@ -68,6 +104,14 @@ class MoAppUpdate {
     else {
       throw NotSupportedPlatformException();
     }
+  }
+
+  Future<MoAppUpdateInfo?> getUpdateInfo() async {
+    return updateInfo ?? await fetchUpdateInfo();
+  }
+
+  clearUpdateInfo() {
+    _updateInfo = null;
   }
 
   MoAppSelfUpdateInfoModel? _extractLatestUpdate(MoAppSelfUpdateInfoResponse info) {
@@ -95,6 +139,7 @@ class MoAppUpdate {
     return MoAppSelfUpdateInfoModel(
       downloadUrl: latestInfo.downloadUrl,
       priority: maxPriority,
+      buildNumber: latestBuildNumber,
       versionString: latestInfo.versionString,
       changelog: latestInfo.changelog,
     );
@@ -141,25 +186,37 @@ class MoAppUpdate {
     return MoAppUpdatePlatform.instance.getPlatformVersion();
   }
 
-  Future procedureSelfUpdate(MoAppSelfUpdateInfoModel model) async {
-    if(platform == 'android') {
-      String? apkPath;
-      try{
-        apkPath = await AndroidUtil.downloadApk(model.downloadUrl, model.versionString);
-        var res = await AndroidUtil.installApk(apkPath);
-        return res;
-      }
-      finally {
-        if(apkPath != null) {
-          var file = File(apkPath);
-          if(await file.exists()) {
-            await file.delete();
+  Future procedureUpdate(MoAppUpdateInfo model) async {
+    if(!model.hasUpdate) {
+      return;
+    }
+    if(model.url == null) {
+      throw Exception('url must not null');
+    }
+    var url = model.url!;
+    if(model.mode == MoAppUpdateMode.self) {
+      if(platform == 'android') {
+        String? apkPath;
+        try{
+          apkPath = await AndroidUtil.downloadApk(url, model.newVersionString);
+          var res = await AndroidUtil.installApk(apkPath);
+          return res;
+        }
+        finally {
+          if(apkPath != null) {
+            var file = File(apkPath);
+            if(await file.exists()) {
+              await file.delete();
+            }
           }
         }
       }
+      else {
+        throw UnimplementedError('procedureUpdate ios not implemented');
+      }
     }
     else {
-      throw UnimplementedError('procedureSelfUpdate ios not implemented');
+      throw UnimplementedError('procedureUpdate store not implemented');
     }
   }
 }
