@@ -34,7 +34,6 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   MoAppUpdate? _moAppUpdatePlugin;
   MoAppUpdateInfo? get updateInfo => _moAppUpdatePlugin?.updateInfo;
-  bool get hasUpdate => updateInfo != null;
 
   Future<void> init() async {
     _moAppUpdatePlugin = await MoAppUpdate.initialize(
@@ -74,7 +73,7 @@ class _HomeState extends State<Home> {
   Future onCheckUpdate() async {
     var info = await _moAppUpdatePlugin?.getUpdateInfo();
     setState(() {});
-    if(info == null) {
+    if(info == null || info.hasUpdate == false) {
       await showSimpleDialog(
         message: 'No Update',
         buttons: [
@@ -131,7 +130,7 @@ class _HomeState extends State<Home> {
           children: [
             Text('CurrentVersion: ${updateInfo?.currentVersionString}'),
             Text('NewVersion: ${updateInfo?.newVersionString}'),
-            Text('Update ${hasUpdate ? 'Exist' : 'Not Exist'}'),
+            Text('Update ${updateInfo?.hasUpdate == true ? 'Exist' : 'Not Exist'}'),
             ElevatedButton(
               child: const Text('Check Update'),
               onPressed: onCheckUpdate,
