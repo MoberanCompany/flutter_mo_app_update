@@ -74,7 +74,7 @@ class MoAppUpdate {
     return updateInfo != null;
   }
 
-  Future<MoAppUpdateInfo?> fetchUpdateInfo() async {
+  Future<MoAppUpdateInfo> fetchUpdateInfo() async {
     if(_mode == MoAppUpdateMode.self) {
       var selfUpdateInfo = await _getSelfUpdateInfo();
 
@@ -106,7 +106,7 @@ class MoAppUpdate {
     }
   }
 
-  Future<MoAppUpdateInfo?> getUpdateInfo() async {
+  Future<MoAppUpdateInfo> getUpdateInfo() async {
     return updateInfo ?? await fetchUpdateInfo();
   }
 
