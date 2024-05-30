@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:mo_app_update/mo_app_update.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,10 +34,11 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   late MoAppUpdate _moAppUpdatePlugin;
+  String appVersion = '';
   MoAppSelfUpdateInfoModel? updateInfoModel;
   bool get hasUpdate => updateInfoModel != null;
 
-  Future<void> initPlatformState() async {
+  Future<void> init() async {
     _moAppUpdatePlugin = await MoAppUpdate.initialize(
       mode: MoAppUpdateMode.self,
       selfOption: MoAppUpdateSelfOption(
@@ -46,13 +48,16 @@ class _HomeState extends State<Home> {
 
     updateInfoModel = await _moAppUpdatePlugin.getUpdateInfo();
 
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    appVersion = '${packageInfo.version}(${packageInfo.buildNumber})';
+
     setState(() {});
   }
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
+    init();
   }
 
   Future showSimpleDialog({
@@ -62,7 +67,7 @@ class _HomeState extends State<Home> {
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('No Update',),
+        title: Text(message),
         actions: buttons.map((e) => TextButton(
           onPressed: (){
             Navigator.pop(context, e);
@@ -83,6 +88,7 @@ class _HomeState extends State<Home> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text('CurrentVersion: $appVersion'),
             Text('Update ${hasUpdate ? 'Exist' : 'Not Exist'}'),
             ElevatedButton(
               child: const Text('Check Update'),
