@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.moberan.mo_app_update">
+    <!-- write permissions for external storage -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- read permissions for external storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- installation package permissions -->
